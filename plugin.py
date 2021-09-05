@@ -34,21 +34,36 @@ logger = logging.getLogger("Unmanic.Plugin.encoder_audio_ac3")
 
 class Settings(PluginSettings):
     settings = {
-        "advanced":         False,
-        "main_options":     "",
-        "advanced_options": "",
-        "custom_options":   "",
+        "advanced":              False,
+        "max_muxing_queue_size": 2048,
+        "main_options":          "",
+        "advanced_options":      "",
+        "custom_options":        "",
     }
 
     def __init__(self):
         self.form_settings = {
-            "advanced":         {
+            "advanced":              {
                 "label": "Write your own FFmpeg params",
             },
-            "main_options":     self.__set_main_options_form_settings(),
-            "advanced_options": self.__set_advanced_options_form_settings(),
-            "custom_options":   self.__set_custom_options_form_settings(),
+            "max_muxing_queue_size": self.__set_max_muxing_queue_size_form_settings(),
+            "main_options":          self.__set_main_options_form_settings(),
+            "advanced_options":      self.__set_advanced_options_form_settings(),
+            "custom_options":        self.__set_custom_options_form_settings(),
         }
+
+    def __set_max_muxing_queue_size_form_settings(self):
+        values = {
+            "label":          "Max input stream packet buffer",
+            "input_type":     "slider",
+            "slider_options": {
+                "min": 1024,
+                "max": 10240,
+            },
+        }
+        if self.get_setting('advanced'):
+            values["display"] = 'hidden'
+        return values
 
     def __set_main_options_form_settings(self):
         values = {
@@ -153,8 +168,10 @@ def on_library_management_file_test(data):
     abspath = data.get('path')
 
     # Get file probe
-    probe = Probe(logger)
-    probe.file(abspath)
+    probe = Probe(logger, allowed_mimetypes=['audio', 'video'])
+    if not probe.file(abspath):
+        # File probe failed, skip the rest of this test
+        return data
 
     # Get stream mapper
     mapper = PluginStreamMapper()
@@ -182,10 +199,6 @@ def on_worker_process(data):
         original_file_path      - The absolute path to the original file.
         repeat                  - Boolean, should this runner be executed again once completed with the same variables.
 
-    DEPRECIATED 'data' object args passed for legacy Unmanic versions:
-        exec_ffmpeg             - Boolean, should Unmanic run FFMPEG with the data returned from this plugin.
-        ffmpeg_args             - A list of Unmanic's default FFMPEG args.
-
     :param data:
     :return:
 
@@ -193,14 +206,12 @@ def on_worker_process(data):
     # Default to no FFMPEG command required. This prevents the FFMPEG command from running if it is not required
     data['exec_command'] = []
     data['repeat'] = False
-    # DEPRECIATED: 'exec_ffmpeg' kept for legacy Unmanic versions
-    data['exec_ffmpeg'] = False
 
     # Get the path to the file
     abspath = data.get('file_in')
 
     # Get file probe
-    probe = Probe(logger)
+    probe = Probe(logger, allowed_mimetypes=['audio', 'video'])
     if not probe.file(abspath):
         # File probe failed, skip the rest of this test
         return data
@@ -214,10 +225,7 @@ def on_worker_process(data):
         mapper.set_input_file(abspath)
 
         # Set the output file
-        # Do not remux the file. Keep the file out in the same container
-        split_file_in = os.path.splitext(abspath)
-        split_file_out = os.path.splitext(data.get('file_out'))
-        mapper.set_output_file("{}{}".format(split_file_out[0], split_file_in[1]))
+        mapper.set_output_file(data.get('file_out'))
 
         # Get generated ffmpeg args
         ffmpeg_args = mapper.get_ffmpeg_args()
@@ -225,8 +233,6 @@ def on_worker_process(data):
         # Apply ffmpeg args to command
         data['exec_command'] = ['ffmpeg']
         data['exec_command'] += ffmpeg_args
-        # DEPRECIATED: 'ffmpeg_args' kept for legacy Unmanic versions
-        data['ffmpeg_args'] = ffmpeg_args
 
         # Set the parser
         parser = Parser(logger)

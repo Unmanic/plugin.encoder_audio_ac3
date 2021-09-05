@@ -4,7 +4,7 @@
         1
     ],
     "description": "Ensure all audio streams are encoded with the AC3 codec using the native FFmpeg ac3 encoder.",
-    "icon": "",
+    "icon": "https://raw.githubusercontent.com/Josh5/unmanic.plugin.encoder_audio_ac3/master/icon.png",
     "id": "encoder_audio_ac3",
     "name": "Audio Encoder AC3",
     "priorities": {

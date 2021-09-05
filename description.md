@@ -9,17 +9,25 @@ This Plugin will automatically manage bitrate for you.
 
 ### Config description:
 
+#### <span style="color:blue">Max input stream packet buffer</span>
+When transcoding audio and/or video streams, ffmpeg will not begin writing into the output until it has one packet for each such stream. 
+While waiting for that to happen, packets for other streams are buffered. 
+This option sets the size of this buffer, in packets, for the matching output stream.
+
+FFmpeg docs refer to this value as '-max_muxing_queue_size'
+
+
 #### <span style="color:blue">Write your own FFmpeg params</span>
 This free text input allows you to write any FFmpeg params that you want. 
 This is for more advanced use cases where you need finer control over the file transcode.
 
 ###### Note:
 These params are added in three different places:
-1. After the default main options.
+1. **MAIN OPTIONS** - After the default generic options.
    ([Main Options Docs](https://ffmpeg.org/ffmpeg.html#Main-options))
-1. After the input file has been specified.
+1. **ADVANCED OPTIONS** - After the input file has been specified.
    ([Advanced Options Docs](https://ffmpeg.org/ffmpeg.html#Advanced-options))
-1. After the audio is mapped and the encoder is selected.
+1. **AUDIO OPTIONS** - After the audio stream is mapped and the encoder is selected.
    ([Audio Options Docs](https://ffmpeg.org/ffmpeg.html#Audio-Options))
    ([Advanced Audio Options Docs](https://ffmpeg.org/ffmpeg.html#Advanced-Audio-options))
 
@@ -27,7 +35,6 @@ These params are added in three different places:
 ffmpeg \
     -hide_banner \
     -loglevel info \
-    -strict -2 \
     <CUSTOM MAIN OPTIONS HERE> \
     -i /path/to/input/video.mkv \
     <CUSTOM ADVANCED OPTIONS HERE> \
